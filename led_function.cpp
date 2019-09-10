@@ -1,24 +1,32 @@
 #include <stdio.h>
+// the y and x axis 
+int led[17][17];
 
 int main(void) {
-  int led[17][17];
+  //mapLED();
+  generateCube(5, 2, 2);
+}
+
+void mapLED(){
+  
+
   int x_max = 17;
   int y_max = 17;
   int counter = 0;
-  int num = 16;
+  int max = y_max - 1;
 
   for (int x = 0; x < x_max; x++)
   {
-    num = 16;
+    max = y_max - 1;
     if((x % 2 != 0)){
       for (int y = 0; y < y_max; y++)
       { 
-        led[x][y] = (x * 17) + (num);
-        num--;
+        led[x][y] = (x * 17) + (max);
+        max--;
       }
     }
     else{
-      num = 0;
+      max = 0;
       for (int y = 0; y < y_max; y++)
       { 
         if(x == 0){
@@ -26,8 +34,8 @@ int main(void) {
           counter++;
         }
         else{
-          led[x][y] = led[x - 1][y] + (num + (y+1));
-          num++;
+          led[x][y] = led[x - 1][y] + (max + (y + 1));
+          max++;
         }
       }
     }
@@ -37,6 +45,18 @@ int main(void) {
     printf( "\n%d: ", i);
     for(int y =0; y < y_max; y++)
             printf( "%d ", led[i][y]) ;
+  }
+}
+
+// the x and y paramters are used as a starting point to draw the cube
+void generateCube(int pSize, int pX, int pY){
+
+  for(int y = 0; y < pSize; y++)
+  {
+      for(int x = 0; x < pSize; x++)
+      {
+        led[y + pY][x + pX] = CRGB::Red; 
+      }
   }
 }
 
