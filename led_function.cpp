@@ -58,6 +58,7 @@ void generateCube(int pSize, int pX, int pY){
         led[y + pY][x + pX] = CRGB::Red; 
       }
   }
+  FastLed.show();
 }
 
 
