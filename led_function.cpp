@@ -109,10 +109,11 @@ void drawSquare(int pos_x, int pos_y, int width, int R, int G, int B){
   {
       for(int x = 0; x < width; x++)
       {
+        if (((x + pos_x) <= x_max && (x + pos_x >= 0)) && 
+              ((y + pos_y) <= y_max && (y + pos_y >= 0))){
 
-        
-        leds[led[y+pos_y][x+pos_x]] = CRGB(R,G,B);
-         
+              leds[led[y + pos_y][x + pos_x]] = CRGB(R,G,B);
+        }
       }
   }
   FastLED.show();
