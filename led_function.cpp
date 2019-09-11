@@ -18,12 +18,6 @@ CRGB leds[NUM_LEDS];
 
 Thread rainThread = Thread();
 
-// the LED matrix
-// --------|
-// |-------|
-// |-------
-int led[17][17];
-
 int x_max = 17;
 int y_max = 17;
 int counter = 0;
@@ -35,10 +29,14 @@ void setup() {
 
   Serial.begin(9600);
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  mapLED();
 }
 
 void loop() { 
+  makeItRain();
+}
+
+// creates raindrops over the whole width of the board
+void makeItRain(){
   for(int x = 0; x < x_max; x++){
     rainThread.onRun(rain(random(3, 8), x));
 
@@ -48,14 +46,13 @@ void loop() {
       
       rainThread = Thread();
       rainThread.enabled = true;
-	    rainThread.setInterval(200);
+      rainThread.setInterval(200);
     }
-      
   }
 }
 
-
-void rain(int dropLength, int pX){
+// creates a raindrop -> moves a number of leds horizontaly
+void rainDrop(int dropLength, int pX){
   for(int y = 0; y < y_max; y++){
     FastLED.clear();
     leds[led[y][pX]] = CRGB(200,0,255);
@@ -67,59 +64,20 @@ void rain(int dropLength, int pX){
   }
 }
 
-
-void mapLED(){
-  for (int x = 0; x < x_max; x++)
-  {
-    lim = y_max - 1;
-    if((x % 2 != 0)){
-      for (int y = 0; y < y_max; y++)
-      { 
-        led[x][y] = (x * y_max) + (lim);
-        lim--;
-      }
-    }
-    else{
-      lim = 0;
-      for (int y = 0; y < y_max; y++)
-      { 
-        if(x == 0){
-          led[x][y] = counter;
-          counter++;
-        }
-        else{
-          led[x][y] = led[x - 1][y] + (lim + (y + 1));
-          lim++;
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < x_max; i++){
-    Serial.println( "\n: "+ i);
-    for(int y =0; y < y_max; y++)
-            Serial.println(led[i][y]) ;
-  }
-}
-
-
-
+// lights LED's in a square given the size(width) and the starting point(pos_x, pos_y)
+// the startingoint is at the top left of the square
 void drawSquare(int pos_x, int pos_y, int width, int R, int G, int B){
   for(int y = 0; y < width; y++)
   {
       for(int x = 0; x < width; x++)
       {
-        if (((x + pos_x) <= x_max && (x + pos_x >= 0)) && 
-              ((y + pos_y) <= y_max && (y + pos_y >= 0))){
-
-              leds[led[y + pos_y][x + pos_x]] = CRGB(R,G,B);
-        }
+        leds[calculateLED(pos_y + y, pos_x + x)] = CRGB(R,G,B);
       }
   }
   FastLED.show();
 }
 
-
+// draws a stickman
 void DrawMan(int moveX){
   FastLED.clear();
   
@@ -155,12 +113,12 @@ void DrawMan(int moveX){
     FastLED.show();
 }
 
-/*turnOff(int pos_x, int pos_y){
-
-
-
-  leds[led[pos_y][pos_x]] = CRGB(0,0,0);
-
-  
-  
-}*/
+// calculates the number of the led according to the given x and y 
+int calculateLED(int pY, int pX){
+  if(pY % 2 != 0){
+    return (pX + ((pY - 1) * x_max));
+  }
+  else{
+    return ((((pY - 1) * x_max)) + (x_max - pX)) + 1;
+  }
+}
