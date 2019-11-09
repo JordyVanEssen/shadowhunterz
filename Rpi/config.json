@@ -1,7 +1,9 @@
 {
-    "ledX": "1",
-    "ledY": "1",
+    "ledX": "8",
+    "ledY": "8",
     "mode": "Config",
     "squareX": "1",
-    "squareY": "1"
+    "squareY": "1",
+    "brightness": "255",
+    "ledCount": "64"
 }

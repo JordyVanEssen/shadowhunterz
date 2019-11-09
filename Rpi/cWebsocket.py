@@ -2,41 +2,65 @@
 
 # WS server example
 from cFileWriter import FileWriter
+from cCreateCustomFunctions import createFunctions
+from CustomFunctions.cControl import control
 
 import asyncio
 import websockets
 import json
-
+import os
 
 color = [0, 255, 0]
 busy = False
 function = 'draw'
 
 async def readIncomingData(websocket, path):
-    global color, busy, function
-    busy = True
-    incomingData = { 
-            "mode":""
-        }
-    incomingData = await websocket.recv()
-    print(incomingData)
-    data = json.loads(incomingData)
+    while True:
+        try:
+            global color, busy, function
+            incomingData = { 
+                    "mode":""
+                }
+            incomingData = await websocket.recv()
+            print(incomingData)
+            data = json.loads(incomingData)
 
-    if data['mode'] == "Config":
-        fileWriter = FileWriter()
-        fileWriter.writeToFile(json.dumps(data, indent=4, sort_keys=True))
-    if data['mode'] == "Color":
-        color[0] = data['R']
-        color[1] = data['G']
-        color[2] = data['B']
-    if data['mode'] == "sensor":
-        pass
-    if data['mode'] == "function":
-        function = data['function']
+            if data['mode'] == "Config":
+                fileWriter = FileWriter()
+                fileWriter.writeToFile('config.json', json.dumps(data, indent=4, sort_keys=True))
+            if data['mode'] == "Color":
+                busy = True
+                color[0] = data['R']
+                color[1] = data['G']
+                color[2] = data['B']
+                busy = False
+            if data['mode'] == "sensor":
+                pass
+            if data['mode'] == "function":
+                function = data['function']
+            if data['mode'] == "file":
+                customFunction = createFunctions(data['name'])
+                customFunction.addNewFunction(data['customFunction'])
+            if data['mode'] == "getAll":
+                getFunction = control()
+                defaultFunctions = ['rainbow', 'rainbowCycle', 'theaterChase', 'theatherRainbowChase', 'draw', 'colorWipe', 'sensor', 'wave']
+                customFunctions = getFunction.getAll()
+                
+                for f in defaultFunctions:
+                    customFunctions.append(f)
 
-    busy = False
+                jsonMessage = {
+                    "mode":"availableFunctions",
+                    "functions": customFunctions
+                }
+                await websocket.send(json.dumps(jsonMessage))
+        except websockets.ConnectionClosed:
+            pass
+        
+
 
 def returnFunc():
+    global function
     return function
 
 def getColor():

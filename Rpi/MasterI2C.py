@@ -1,8 +1,12 @@
 from cLedFunctions import LedFunctions
-import time 
-import argparse
+from CustomFunctions.cControl import control
 from cWebsocket import getColor
 from neopixel import *
+
+import os
+import time 
+import argparse
+import importlib
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -10,6 +14,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     panelFunctions = LedFunctions()
+    panelFunctions.startThread()
 
     currentMode = ''
 
@@ -18,28 +23,29 @@ if __name__ == '__main__':
         print('Use "-c" argument to clear LEDs on exit')
 
 try:
+    control = control()
     while True:
         function = panelFunctions.getFunc()
 
         if currentMode != function:
             panelFunctions.colorWipe(Color(0, 0, 0))
-
-            if function == 'draw':
-                panelFunctions.draw()
-            elif function == 'rainbow':
-                panelFunctions.rainbow()
-            elif function == 'colorWipe':
+            
+            if function == 'colorWipe':
                 customColor = getColor()
+                # GRB
                 color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
                 panelFunctions.colorWipe(color)
-            elif function == 'theaterChase':
-                panelFunctions.theaterChase()
-            elif function == 'theaterChaseRainbow':
-                panelFunctions.theaterChaseRainbow()
-            elif function == 'rainbowCycle':
-                panelFunctions.rainbowCycle()
-            elif function == '':
-                pass
+            else:
+                if control.ifMethodExist(function) is True:
+                    path = '{homeDir}/CustomFunctions/f_{fileName}.py'.format(homeDir=os.getcwd(), fileName=function)
+                    f = open(path, 'r')
+                    code_str = f.read()
+                    method = compile(code_str, "{fName}.py".format(fName=function), 'exec')
+                    exec(method)
+                else:
+                    getattr(panelFunctions, function)()
+                
+            
 
 except KeyboardInterrupt:
     if args.clear:

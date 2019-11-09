@@ -8,9 +8,6 @@ import threading
 import time
 
 class LedFunctions:
-        
-    
-
     # the ledstrip
     strip = None
     
@@ -37,17 +34,19 @@ class LedFunctions:
     i2cBus = I2Csetup(0x04)
 
     def __init__(self):
+        print('ledfunctions available...')
         self.configurePanel()
+        self.setupStrip()
+
+    def startThread(self):
         thread = threading.Thread(target=run)
         thread.start()
-        self.setupStrip()
 
     def configurePanel(self):
         fileWriter = FileWriter()
-        config = fileWriter.readFile()
+        config = fileWriter.readFile('config.json')
         
         self.config = LedstripConfig(int(config['ledX']), int(config['ledY']), int(config['squareX']), int(config['squareY']), int(config['brightness']), int(config['ledCount']))
-        self.config.printSelf()
         self.calculate = Calculations(self.config.ledX, self.config.ledY, self.config.squareX, self.config.squareY)
 
 
@@ -57,10 +56,14 @@ class LedFunctions:
         # Intialize the library (must be called once before other functions).
         self.strip.begin()
 
+    def getStrip(self):
+        return self.strip
+
     def drawSquare(self, ledArray, color):
-        for led in ledArray:
-            self.strip.setPixelColor(led - 1, color)
-            self.strip.show()
+        if len(ledArray) > 1:
+            for led in ledArray:
+                self.strip.setPixelColor(led - 1, color)
+                self.strip.show()
 
     def fillBoard(self):
         for y in range(0, self.Y_MAX, 2):
@@ -71,7 +74,7 @@ class LedFunctions:
     def theaterChase(self, wait_ms=50, iterations=10):
         """Movie theater light style chaser animation."""
         while True:
-            if self.checkFunction('theaterChase') == False:
+            if not self.checkFunction('theaterChase'):
                 return
             customColor = getColor()
             color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
@@ -98,7 +101,7 @@ class LedFunctions:
     def rainbow(self, wait_ms=20, iterations=1):
         """Draw rainbow that fades across all pixels at once."""
         while True:
-            if self.checkFunction('rainbow') == False:
+            if not self.checkFunction('rainbow'):
                 return
             for j in range(256*iterations):
                 for i in range(self.strip.numPixels()):
@@ -109,7 +112,7 @@ class LedFunctions:
     def rainbowCycle(self, wait_ms=20, iterations=5):
         """Draw rainbow that uniformly distributes itself across all pixels."""
         while True:
-            if self.checkFunction('rainbowCycle') == False:
+            if not self.checkFunction('rainbowCycle'):
                 return
             for j in range(256*iterations):
                 for i in range(self.strip.numPixels()):
@@ -120,7 +123,7 @@ class LedFunctions:
     def theaterChaseRainbow(self, wait_ms=50):
         """Rainbow movie theater light style chaser animation."""
         while True:
-            if self.checkFunction('theaterChaseRainbow') == False:
+            if not self.checkFunction('theaterChaseRainbow'):
                 return
 
             for j in range(256):
@@ -133,12 +136,52 @@ class LedFunctions:
                         self.strip.setPixelColor(i+q, 0)
     
     def wave(self):
-        for i in range(len(litUpSquare)):
-            drawSquare(self.strip, self.litUpSquare[i], Color(0, 0, 0))
-            time.sleep(1.5)
+        """Leds turn off in the order they turned on."""
+        previousMillis = 0
+        interval = 2
+        milli_sec = time.time()
+        coordinate = None
+        
+        while True:
+            if not self.checkFunction('wave'):
+                return
+            
+            sensId = self.readInput()
+
+            if sensId is not None:
+                if sensId >= 1:
+                    milli_sec = time.time()
+                    if sensId not in self.litUpSquare:
+                        self.litUpSquare.append(sensId)
+            
+            if sensId >= 1:
+                coordinate = self.calculate.calculateSensorCoord(sensId)
+
+            color = Color(0, 0, 0)
+
+            if sensId in self.litUpSquare:
+                customColor = getColor()
+                # it uses GRB instead of RGB
+                color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
+
+            if coordinate is not None:
+                self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
+                coordinate = None
+
+            if time.time() - milli_sec > interval:
+                milli_sec = time.time()
+
+                for i in range(len(self.litUpSquare)):
+                    coordinate = self.calculate.calculateSensorCoord(self.litUpSquare[i])
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), Color(0, 0, 0))
+                    time.sleep(1.5)
+                self.litUpSquare.clear()
     
     def getFunc(self):
         return returnFunc()
+
+    def readInput(self):
+        return self.i2cBus.readInput(0x04)
 
     def draw(self):
         coordinate = None
@@ -148,11 +191,10 @@ class LedFunctions:
                 return
             time.sleep(0.1)
 
-            sensId = self.i2cBus.readInput(0x04)
+            sensId = self.readInput()
 
             if sensId is not None:
                 if sensId >= 1:
-                    print("SensId: %d" %sensId)
                     if sensId not in self.litUpSquare:
                         self.litUpSquare.append(sensId)
                     else:
