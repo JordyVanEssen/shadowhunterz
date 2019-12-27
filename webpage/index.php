@@ -8,9 +8,9 @@
    <body onload="getAvailableFunctions()">
       <div class="tab">
          <button class="tablinks" onclick="openTab(event, 'changeColor')">Change color</button>
-         <button class="tablinks" onclick="openTab(event, 'changeFunction')">Change Function</button>
+         <button class="tablinks" onclick="openTab(event, 'changeFunction')">Change function</button>
          <button class="tablinks" onclick="openTab(event, 'createFunction')">Create your own function!</button>
-         <button class="tablinks" onclick="openTab(event, 'panelConfig')">Panel Configuration</button>
+         <button class="tablinks" onclick="openTab(event, 'panelConfig')">Panel configuration</button>
 
 
       </div>
@@ -36,7 +36,7 @@
                   <input type="number" id="blueNum">
                   <input  value="180" type="range" min="0" max="255" id="blue">
                </div>
-               <button class="button" type="button" onclick="sendData()">Toepassen</button>
+               <button class="button" type="button" onclick="sendData()">Apply</button>
             </div>
          </div>
       </div>
@@ -48,7 +48,7 @@
          <input type="text" id="squareY" placeholder="aantal hokjes op de y-as"><br>
          <input type="text" id="ledCount" placeholder="totaal aantal LEDs"><br>
          <input type="text" id="brightness" placeholder="default helderheid (0-255)"><br>
-         <button class="button" type="button" onclick="savePanelSettings()">Opslaan</button>   
+         <button class="button" type="button" onclick="savePanelSettings()">Save</button>   
       </div>
 
       <div id="changeFunction" class="tabcontent">
@@ -56,11 +56,18 @@
       </div>
 
       <div id="createFunction" class="tabcontent">
-         <form>
+         <div class="header-createFunction">
             <input type="text" id="customFunctionName" placeholder="Naam van de functie"><br>
+            <button class="button" type="button" onclick="createFunction()">Save function</button>
+         </div>
+         
+         
+         <div class="text-editor">
             <textarea id="textArea" class="codemirror-textarea"></textarea>
-            <button class="button" type="button" onclick="createFunction()">Functie opslaan</button>
-         </form>
+         </div>
+         <div id="error-div" class="error-feedback">
+
+         </div>
       </div>
       
       

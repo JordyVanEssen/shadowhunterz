@@ -6,8 +6,12 @@ var functions = [ ];
 var ws;
 // -- webmirror code editor
 var editor;
+// -- valid session
+var validSession = false;
 
 $(document).ready(function(){
+    validateSession();
+
 	var code = $(".codemirror-textarea")[0];
 	editor = CodeMirror.fromTextArea(code, {
         lineNumbers : true,
@@ -15,19 +19,46 @@ $(document).ready(function(){
 	});
 });
 
+async function validateSession() {
+    let phpFile = `http://${location.host}/api/public/TokenConfiguration.php`;
+    let response = await (await fetch(phpFile)).json();
+    var token = response.result.replace(/\n/g, '');
+
+    var url = new URL(window.location.href);
+    var sessionId = url.searchParams.get("session");
+
+    var url = `http://${location.host}:8080/validate/${sessionId}`;
+
+    let validSession = await (await fetch(url, {
+        method: 'GET',
+        headers:{
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json; charset=UTF-8",
+            "Authorization": token
+        }
+    })).json();
+    
+    validSession = validSession.status;
+    if (!validSession) {
+        window.open(`http://${location.host}/login.htm`, "_self");
+    }
+}
+
 // -- opening tabs
 function openTab(evt, option) {
-    var i, tabcontent, tablinks;
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-      tabcontent[i].style.display = "none";
+    if(validSession){
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(option).style.display = "block";
+        evt.currentTarget.className += " active";
     }
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-      tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-    document.getElementById(option).style.display = "block";
-    evt.currentTarget.className += " active";
 }
 
 // -- websocket 
@@ -51,7 +82,7 @@ function getAvailableFunctions(){
 // -- create a connection and send/receive data
 function websocketConnection(pData) {
     var data = pData;
-    var ipAdress = "172.19.3.121";
+    var ipAdress = location.host;
     var port = "8765";
     ws = new WebSocket(`ws://${ipAdress}:${port}`);
 
@@ -67,12 +98,8 @@ function websocketConnection(pData) {
         // Listen for messages
         ws.addEventListener('message', function (event) {
             var json = JSON.parse(event.data);
-            json.functions.forEach(e => {
-                if(e.includes('f_')){
-                    e = e.substring(2, e.length)
-                }
-                createRadioButton(e);
-            });    
+            console.log(json);
+            handleIncomingData(json);
         });
 
         ws.onclose = function(event) { 
@@ -82,6 +109,24 @@ function websocketConnection(pData) {
     } else {
         // The browser doesn't support WebSocket
         alert("WebSocket NOT supported by your Browser!");
+    }
+}
+
+// -- handles incoming data
+function handleIncomingData(pData){
+    console.log("Mode: " + pData.mode)
+    if (pData.mode == "availableFunctions") {
+        pData.functions.forEach(e => {
+            if(e.includes('f_')){
+                e = e.substring(2, e.length);
+            }
+            createRadioButton(e);
+        });
+    }
+    
+    if (pData.mode == "error") {
+        document.getElementById("error-div").innerHTML = pData.message;
+        console.log(pData.message)
     }
 }
 
@@ -140,7 +185,7 @@ function createRadioButton(val){
     if (val == null) {
         val = document.getElementById("customFunctionName").value;
     }
-    var id = "r" + (radiobuttons.length + 1);
+    var id = `r${radiobuttons.length + 1}`;
     var valid = false;
     radiobuttons.forEach(e =>{
         if(e[1] == val){

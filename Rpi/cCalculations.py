@@ -1,19 +1,14 @@
 from cCoordinate import Coordinate
 
 class Calculations:
-    X_MAX = 0
-    Y_MAX = 0
-
-    SQUARE_X = 0
-    SQUARE_Y = 0
-
     def __init__(self, xmax, ymax, sqaure_x, square_y):
+        self.__self__ = self
         self.X_MAX = xmax
         self.Y_MAX = ymax
         self.SQUARE_X = sqaure_x
         self.SQUARE_Y = square_y
-        self.__self__ = self
 
+    # -- returns the number of the LED given the x and y
     def calculateLeds(self, x, y):
         y += 1
         if y % 2 != 0:
@@ -21,10 +16,11 @@ class Calculations:
         else:
             return ((((y - 1) * self.X_MAX)) + (self.X_MAX - x)) - 1
 
+    # -- returns the number of the LED given the coordinate of the activated sensor
     def sensorCoordToLedCoord(self, x, y):
         return (y * self.Y_MAX + x)
 
-
+    # -- calculates the coordinate of the activated sensor
     def calculateSensorCoord(self, sensorId):
         sensorId -= 1
         rest = sensorId
@@ -37,6 +33,7 @@ class Calculations:
         
         return Coordinate(rest + 1, yresult + 1)
 
+    # -- calculates the LED's to be lit up 
     def calcLEDS(self, num, x):
         x1 = num
         x2 = num + 1
@@ -46,5 +43,6 @@ class Calculations:
         print(arr)
         return arr
 
+    # -- Returns the number of the LED in the top-left corner of the square
     def calcTopLeftSquare(self, x, y):
         return x * 2 - 1 + (((y*2-1)-1) * self.Y_MAX)

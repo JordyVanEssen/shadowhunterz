@@ -1,5 +1,28 @@
 body {font-family: Arial;}
 
+#createFunction {
+  width: 100%;
+  height: auto;
+  overflow: auto;
+}
+
+.text-editor {
+  float: left;
+  width: 80%;
+}
+.error-feedback {
+  background-color: whitesmoke;
+  width: 18%;
+  height: 500px;
+  border: 1px solid black;
+  box-sizing: border-box;
+  float: right;
+}
+
+.header-createFunction {
+  margin-bottom: 25px;
+}
+
 /* Style the tab */
 .tab {
   overflow: hidden;
@@ -158,8 +181,10 @@ span:nth-child(1){
 
 .CodeMirror {
   /* Set height, width, borders, and global font properties here */
+  border: 1px solid black;
   font-family: monospace;
-  height: 300px;
+  height: 500px;
+  width: 80%;
   color: black;
   direction: ltr;
 }
