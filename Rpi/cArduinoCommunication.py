@@ -1,3 +1,4 @@
+
 import smbus
 
 class I2Csetup():
@@ -14,13 +15,13 @@ class I2Csetup():
     def ConvertStringToBytes(self, src):
         try:
             self.bus.write_byte_data(ARDUINO_ADDRESS, 0x00, ord(src))
-            print("Sent: %d" %ord(src))
+            #print("Sent: %d" %ord(src))
         except:
             print("Error occured in the sending")
 
 
     def readInput(self, address):
-        data = self.bus.read_byte(address)
+        data = self.bus.read_byte(int(address))
         if data > 0:
             print("received: %d" %data)
         

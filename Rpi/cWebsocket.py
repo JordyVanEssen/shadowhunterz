@@ -10,7 +10,7 @@ import socket
 import urllib
 import smtplib
 
-color = [0, 255, 0]
+color = [255, 0, 0]
 busy = False
 function = 'draw'
 ws = None
@@ -25,7 +25,6 @@ async def readIncomingData(websocket, path):
                     "mode":""
                 }
             incomingData = await websocket.recv()
-            print(incomingData)
 
             data = json.loads(incomingData)
 
@@ -52,7 +51,7 @@ async def readIncomingData(websocket, path):
 
             if data['mode'] == "getAll":
                 getFunction = control()
-                defaultFunctions = ['rainbow', 'rainbowCycle', 'theaterChase', 'theatherRainbowChase', 'draw', 'colorWipe', 'sensor', 'wave']
+                defaultFunctions = ['rainbow', 'rainbowCycle', 'theaterChase', 'theatherRainbowChase', 'draw', 'colorWipe', 'sensor', 'wave', 'WhacMole']
                 customFunctions = getFunction.getAll()
                 
                 for f in defaultFunctions:
@@ -71,9 +70,12 @@ def returnFunc():
     global function
     return function
 
+def setFunction(f):
+    global function
+    function = f
+
 def getColor():
     global busy, color
-
     if not busy:
         return color
 
@@ -84,6 +86,10 @@ def getIp():
     ip = s.getsockname()[0]
     s.close()
     return ip
+
+def setColor(c):
+    global color
+    color = c
 
 async def wsSend(msg):
     global ws

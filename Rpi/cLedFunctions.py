@@ -2,8 +2,11 @@ from cCalculations import Calculations
 from cArduinoCommunication import I2Csetup
 from cFileWriter import FileWriter
 from cConfig import LedstripConfig
-from cWebsocket import getColor, run, returnFunc
+from cWebsocket import getColor, run, returnFunc, setColor
+from cIOcontroller import IOcontroller
 from neopixel import *
+from PIL import Image 
+import random
 import threading
 import time
 
@@ -16,8 +19,6 @@ class LedFunctions:
     Y_MAX = 0
     SQUARE_X = 0
     SQUARE_Y = 0
-    # -- the amount of panels on the wall
-    panels = 1
     arduinoAdresses = [ ]
 
     # calculations are found in this class: Calculations
@@ -32,59 +33,52 @@ class LedFunctions:
     litUpSquare = [ ]
 
     # the i2c bus, used to communicate with the arduino's
-    i2cBus = I2Csetup(0x04)
+    i2cBus = I2Csetup(0x05)
+
+    # Whac-A-Mole score
+    score = 0
+
+    # control the io pins
+    controller = IOcontroller()
 
     def __init__(self):
         print('ledfunctions available...')
         self.configurePanel()
         self.setupStrip()
         i = 0
-        for i in range(self.panels * 3):
-            self.arduinoAdresses.append(hex(i + 3))
+        for i in range(self.config.panels * 3):
+            self.arduinoAdresses.append(i + 4)
+            print(self.arduinoAdresses[i])
 
     # -- asks every arduino if an IR-sensor was activated
     # -- probably need to put every panel in a thread...
     def readInput(self, address):
+        #i2cBus = I2Csetup(address)
         return self.i2cBus.readInput(address)
-
-    def startThread(self):
-        thread = threading.Thread(target=run)
-        thread.start()
 
     # -- configure the panel and strip
     def configurePanel(self):
         fileWriter = FileWriter()
         config = fileWriter.readFile('config.json')
-        
 
-        self.config = LedstripConfig(int(config['ledX']), int(config['ledY']), int(config['squareX']), int(config['squareY']), int(config['brightness']), int(config['ledCount']))
+        self.config = LedstripConfig(int(config['ledX']), int(config['ledY']), int(config['squareX']), int(config['squareY']), int(config['brightness']), int(config['ledCount']), int(config['panels']))
         self.calculate = Calculations(self.config.ledX, self.config.ledY, self.config.squareX, self.config.squareY)
 
     def setupStrip(self):
-        print(str(self.config))
         # Create NeoPixel object with appropriate configuration.
         self.strip = Adafruit_NeoPixel(self.config.ledCount, self.config.ledPin, self.config.ledFreqHz, self.config.ledDma, self.config.ledInvert, self.config.brightness, self.config.ledChannel)
         # Intialize the library (must be called once before other functions).
         self.strip.begin()
-    # -- end config strip/panels
 
     def getStrip(self):
         return self.strip
 
     def drawSquare(self, ledArray, color):
-        print("drawing square")
-        print(color)
         if len(ledArray) > 1:
             for led in ledArray:
-                self.strip.setPixelColor(led - 1, color)
-                self.strip.show()
+                self.strip.setPixelColor(led - 1, Color(int(color[1]), int(color[0]), int(color[2])))
+            self.strip.show()
 
-    def fillBoard(self):
-        for y in range(0, self.Y_MAX, 2):
-            for x in range(0, self.X_MAX, 2):
-                drawSquare(strip, x, y, 2, Color(0, 255, 0))
-                time.sleep(500/1000)
-    
     def theaterChase(self, wait_ms=50, iterations=10):
         """Movie theater light style chaser animation."""
         customColor = getColor()
@@ -113,7 +107,9 @@ class LedFunctions:
         """Draw rainbow that fades across all pixels at once."""
         for j in range(256*iterations):
             for i in range(self.strip.numPixels()):
-                self.strip.setPixelColor(i, self.wheel((i+j) & 255))
+                if returnFunc() != "rainbow":
+                    return
+                self.strip.setPixelColor(i, self.wheel((i + j) & 255))
             self.strip.show()
             time.sleep(wait_ms/1000.0)
 
@@ -143,7 +139,6 @@ class LedFunctions:
         milli_sec = time.time()
         coordinate = None
 
-        i = 0
         for i in range(len(self.arduinoAdresses)):
             sensId = self.readInput(self.arduinoAdresses[i])
             if sensId is not None:
@@ -158,7 +153,7 @@ class LedFunctions:
         if sensId >= 1:
             coordinate = self.calculate.calculateSensorCoord(sensId)
 
-        color = Color(0, 0, 0)
+        color = Color(0, 255, 0)
 
         if sensId in self.litUpSquare:
             customColor = getColor()
@@ -184,34 +179,35 @@ class LedFunctions:
 
         time.sleep(0.1)
 
-        """ i = 0
         for i in range(len(self.arduinoAdresses)):
             sensId = self.readInput(self.arduinoAdresses[i])
             if sensId is not None:
-                break """
-        sensId = self.readInput(0x04)
-
+                if sensId >= 1:
+                    break
+        
         if sensId is not None:
             if sensId >= 1:
                 if sensId not in self.litUpSquare:
                     self.litUpSquare.append(sensId)
-                else:
-                    self.litUpSquare.remove(sensId)
 
             if sensId >= 1:
                 coordinate = self.calculate.calculateSensorCoord(sensId)
 
-            color = Color(0, 0, 0)
-            if sensId in self.litUpSquare:
-                customColor = getColor()
-                # it uses GRB instead of RGB
-                color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
+            color = [0, 0, 0]
+            if self.controller.getMode() is 1:
+                if sensId in self.litUpSquare:
+                    self.controller.getColorFromArduino()
+                    customColor = getColor()
+
+                    # it uses GRB instead of RGB
+                    color = customColor
+                    #color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
+            elif self.controller.getMode() is 0:
+                self.litUpSquare.remove(sensId)
 
             if coordinate is not None:
                 self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
                 coordinate = None
-                
-                
 
     def colorWipe(self, color, wait_ms=50):
         """Wipe color across display a pixel at a time."""
@@ -219,7 +215,102 @@ class LedFunctions:
             self.strip.setPixelColor(i, color)
             self.strip.show()
             time.sleep(wait_ms/1000.0)
-
-    def turnOn(self, id):
-        self.strip.setPixelColor(id, Color(0,255,0))
+    
+    def clearPanel(self):
+        for i in range(self.strip.numPixels()):
+            self.strip.setPixelColor(i, Color(0,0,0))
         self.strip.show()
+
+    def WhacMole(self):
+        """ Whaca-A-Mole Game."""
+        Red = 0
+        Green = 0
+        Blue = 0
+        
+        x = self.score / 5
+        if x >= 1 and x < 2:
+            Green = 255
+        elif x >= 2 and x < 3:
+            Green = 255
+            Red = 255
+        elif x >= 3 and x < 4:
+            Green = 200 
+            Red = 255
+        elif x >= 4 and x < 5:
+            Green = 120
+            Red = 255
+        elif x >= 5:
+            Green = 20
+            Red = 255
+        else:
+            Green = 160
+
+        color = [Red, Green, Blue]
+
+        randomSquare = random.randrange(1, self.config.squareX * self.config.squareY + 1)
+        coordinate = self.calculate.calculateSensorCoord(randomSquare)
+        
+        self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
+
+        current = time.time()
+        while True:
+            if returnFunc() != "WhacMole":
+                return
+            for i in range(len(self.arduinoAdresses)):
+                sensId = self.readInput(self.arduinoAdresses[i])
+                if sensId is not None:
+                    if sensId >= 1:
+                        break
+
+            elapsed = time.time() - current
+            if elapsed < 5:
+                if sensId is not None: 
+                    if sensId >= 1:
+                        if sensId == randomSquare:
+                            self.score += 1 
+                            coordinate = self.calculate.calculateSensorCoord(randomSquare)
+                            self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), [0, 0, 0])
+                            break
+            elif elapsed > 5:
+                self.score = 0
+                for i in range(5):  
+                    color = Color(0,255,0) 
+                    for i in range(self.strip.numPixels()):
+                        self.strip.setPixelColor(i, color)
+                    self.strip.show()
+                    time.sleep(1)
+                    color = Color(0, 0, 0)
+                    for i in range(self.strip.numPixels()):
+                        self.strip.setPixelColor(i, color)
+                    self.strip.show()
+                    time.sleep(1)
+                break
+
+
+"""     def showScore(self):
+        x = map(int, str(self.score))
+            
+        l = x[0]
+        r = x[1]
+        color = Color(255,0,0)
+
+        numL = Image.open('numbers\L' + str(l) + '.png')
+        numR = Image.open('numbers\R' + str(r) + '.png')
+
+        pixelsL = list(numL.getdata())
+        pixelsR = list(numR.getdata())
+
+        width, height = numL.size
+
+        pixelsL = [pixelsL[i * width:(i + 1) * width] for i in xrange(height)]
+        pixelsR = [pixelsR[i * width:(i + 1) * width] for i in xrange(height)]
+
+        for y in range(12):
+            for x in range(12):
+                if pixelsL[y][x][0] == 255:
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x, y), x), color)
+
+        for y in range(12):
+            for x in range(12):
+                if pixelsR[y][x][0] == 255:
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x, y), x), color) """

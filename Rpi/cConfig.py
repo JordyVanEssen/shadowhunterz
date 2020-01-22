@@ -1,6 +1,6 @@
 class LedstripConfig:
     
-    def __init__(self, ledX, ledY, squareX, squareY, brightness, ledCount):
+    def __init__(self, ledX, ledY, squareX, squareY, brightness, ledCount, panels):
         # if yout want to change these remotily just add a parameter and assign it to the correct variable
         # LED strip configuration:
         self.ledPin        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
@@ -12,8 +12,9 @@ class LedstripConfig:
         self.brightness = brightness
         self.ledCount = ledCount
 
-        # set by parameters -> can be remotily changed -> websocket
+        # set by parameters -> can be remotely changed -> websocket
         self.ledX = ledX
         self.ledY = ledY
         self.squareX = squareX
         self.squareY = squareY
+        self.panels = panels
