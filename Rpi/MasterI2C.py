@@ -1,6 +1,6 @@
 from cLedFunctions import LedFunctions
 from CustomFunctions.cControl import control
-from cWebsocket import getColor, returnFunc, wsSend, setFunction
+from cWebsocket import getColor, returnFunc, wsSend, setFunction, run, getIp
 from cIOcontroller import IOcontroller
 from neopixel import *
 
@@ -10,6 +10,7 @@ import argparse
 import importlib
 import asyncio
 import json
+import threading
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,6 +18,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     panelFunctions = LedFunctions()
+    threading.Thread(target = run).start()
+
     controller = IOcontroller()
     controller.startThread()
     print ('Press Ctrl-C to quit.')
@@ -32,7 +35,7 @@ try:
         #controller.getColorFromArduino()
         function = returnFunc()
         if currentMode != function:
-#            currentMode = function
+            #currentMode = function
             if function == 'colorWipe':
                 controller.getColorFromArduino()
                 customColor = getColor()
@@ -41,16 +44,14 @@ try:
                 panelFunctions.colorWipe(color)
             else:
                 if control.ifMethodExist(function) is True:
-                    error = False
                     path = '{homeDir}/CustomFunctions/f_{fileName}.py'.format(homeDir=os.getcwd(), fileName=function)
                     f = open(path, 'r')
                     code_str = f.read()
                     try:
                         method = compile(code_str, "{fName}.py".format(fName=function), 'exec')
-                        while(returnFunc() == currentMode) and not error:
+                        while(returnFunc() == function):
                             exec(method)
                     except Exception as e:
-                        error = True
                         sendErrorMessage(str(e))
                 else:
                     try:
@@ -66,7 +67,6 @@ try:
 except KeyboardInterrupt:
     if args.clear:
         panelFunctions.clearPanel()
-
 
 
 def sendErrorMessage(msg):

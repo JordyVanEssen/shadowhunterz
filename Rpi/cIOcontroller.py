@@ -7,7 +7,7 @@ import threading
 
 class IOcontroller:
 
-    # CONSTANTS
+    # initialize the keypad
     KEYPAD = [
         [1],
         [2],
@@ -22,12 +22,14 @@ class IOcontroller:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     
+    # start the thread which monitors the kyepad
     def startThread(self):
         try:
             threading.Thread(target = self.readKeypad).start()
         except expression as identifier:
             pass
-
+    
+    # read the keypad and set the function according to the pressed key
     def readKeypad(self):
         print("thread started")
         while True:
@@ -43,6 +45,7 @@ class IOcontroller:
                 elif digit is 4:
                     setFunction("draw")
 
+    # get the color from the arduino
     def getColorFromArduino(self):
         color = [0, 255, 0]
         bus = I2Csetup(0x03)
@@ -51,9 +54,11 @@ class IOcontroller:
             color[i] = colorInput
         setColor(color)
 
+    # get the mode, draw of delete
     def getMode(self): # draw or wipe
 	    return GPIO.input(17)
 
+    # gets the pressed key
     def getKey(self):
         # Set all columns as output low
         for j in range(len(self.COLUMN)):
@@ -103,6 +108,7 @@ class IOcontroller:
         return self.KEYPAD[rowVal][colVal]
 
     
+    # on deletion of the object
     def exit(self):
         # Reinitialize all rows and columns as input at exit
         for i in range(len(self.ROW)):

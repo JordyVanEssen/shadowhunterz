@@ -22,7 +22,16 @@ class Calculations:
 
     # -- calculates the coordinate of the activated sensor
     def calculateSensorCoord(self, sensorId):
-        sensorId -= 1
+        temp = sensorId
+        y = 1
+        while temp > self.SQUARE_X:
+            y += 1
+            temp -= self.SQUARE_X
+        
+        print(temp, " ", y)
+        return Coordinate(temp, y)
+
+        """ sensorId -= 1
         rest = sensorId
         yresult = 0
 
@@ -31,7 +40,7 @@ class Calculations:
                 rest -= self.SQUARE_Y
                 yresult += 1
         
-        return Coordinate(rest + 1, yresult + 1)
+        return Coordinate(rest + 1, yresult + 1) """
 
     # -- calculates the LED's to be lit up 
     def calcLEDS(self, num, x):
@@ -40,6 +49,7 @@ class Calculations:
         x3 = num + (((2 * self.X_MAX)-1) - ((x-1) * 4))-1
         x4 = x3 + 1
         arr = {x1, x2, x3, x4}
+        print(arr)
         return arr
 
     # -- Returns the number of the LED in the top-left corner of the square

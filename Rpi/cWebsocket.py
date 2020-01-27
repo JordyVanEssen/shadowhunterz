@@ -10,7 +10,10 @@ import socket
 import urllib
 import smtplib
 
+arduinoColor = [255, 0, 0]
+websiteColor = [255, 0, 0]
 color = [255, 0, 0]
+
 busy = False
 function = 'draw'
 ws = None
@@ -27,16 +30,16 @@ async def readIncomingData(websocket, path):
             incomingData = await websocket.recv()
 
             data = json.loads(incomingData)
-
+            print(incomingData)
             if data['mode'] == "Config":
                 fileWriter = FileWriter()
                 fileWriter.writeToFile('config.json', json.dumps(data, indent=4, sort_keys=True))
 
             if data['mode'] == "Color":
                 busy = True
-                color[0] = data['R']
-                color[1] = data['G']
-                color[2] = data['B']
+                websiteColor[0] = data['R']
+                websiteColor[1] = data['G']
+                websiteColor[2] = data['B']
                 busy = False
 
             if data['mode'] == "sensor":
@@ -51,7 +54,7 @@ async def readIncomingData(websocket, path):
 
             if data['mode'] == "getAll":
                 getFunction = control()
-                defaultFunctions = ['rainbow', 'rainbowCycle', 'theaterChase', 'theatherRainbowChase', 'draw', 'colorWipe', 'sensor', 'wave', 'WhacMole']
+                defaultFunctions = ['rainbow', 'rainbowCycle', 'theaterChase', 'theatherRainbowChase', 'draw', 'WhacMole', 'clearPanel']
                 customFunctions = getFunction.getAll()
                 
                 for f in defaultFunctions:
@@ -75,9 +78,25 @@ def setFunction(f):
     function = f
 
 def getColor():
-    global busy, color
-    if not busy:
-        return color
+    return compareColor()
+
+def compareColor():
+    global arduinoColor, websiteColor, color
+    inRange = True
+    if (color[0]) > (arduinoColor[0] + 5) or (color[1]) > (arduinoColor[1] + 5) or (color[2] > (arduinoColor[2] + 5)):
+        inRange = False
+
+    if (color[0]) < (arduinoColor[0] - 5) or (color[1]) < (arduinoColor[1] - 5) or (color[2] < (arduinoColor[2] - 5)):
+        inRange = False
+    
+    if (inRange) and (color != websiteColor):
+        #color = websiteColor
+        pass
+    else:
+        color = arduinoColor
+
+    return color
+
 
 def getIp():
     ip = ''
@@ -85,11 +104,12 @@ def getIp():
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     s.close()
+    print(ip)
     return ip
 
 def setColor(c):
-    global color
-    color = c
+    global arduinoColor
+    arduinoColor = c
 
 async def wsSend(msg):
     global ws
@@ -97,6 +117,7 @@ async def wsSend(msg):
 
 def run():
     try:
+        print("websocket thread running")
         asyncio.set_event_loop(asyncio.new_event_loop())
         start_server = websockets.serve(readIncomingData, getIp(), 8765)
         asyncio.get_event_loop().run_until_complete(start_server)

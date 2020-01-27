@@ -7,6 +7,7 @@ class createFunctions:
     def __init__(self, fName):
         self.path = '{dirPath}/CustomFunctions/f_{name}.py'.format(dirPath=os.getcwd(), name=fName)
 
+    # writes the custom function to a file
     def addNewFunction(self, data):
         fileWriter = FileWriter()
 

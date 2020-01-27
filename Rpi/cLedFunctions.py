@@ -6,9 +6,12 @@ from cWebsocket import getColor, run, returnFunc, setColor
 from cIOcontroller import IOcontroller
 from neopixel import *
 from PIL import Image 
+from os import listdir
+from os.path import isfile, join
 import random
 import threading
 import time
+import json
 
 class LedFunctions:
     # the ledstrip
@@ -35,26 +38,30 @@ class LedFunctions:
     # the i2c bus, used to communicate with the arduino's
     i2cBus = I2Csetup(0x05)
 
-    # Whac-A-Mole score
+    # Whac-A-Mole score and speed
     score = 0
+    speed = 5.0
 
     # control the io pins
     controller = IOcontroller()
 
     def __init__(self):
-        print('ledfunctions available...')
         self.configurePanel()
         self.setupStrip()
         i = 0
         for i in range(self.config.panels * 3):
+            print(i + 4)
             self.arduinoAdresses.append(i + 4)
-            print(self.arduinoAdresses[i])
 
     # -- asks every arduino if an IR-sensor was activated
     # -- probably need to put every panel in a thread...
-    def readInput(self, address):
-        #i2cBus = I2Csetup(address)
-        return self.i2cBus.readInput(address)
+    def readInput(self):
+        for i in range(len(self.arduinoAdresses)):
+            sensId = self.i2cBus.readInput(self.arduinoAdresses[i])
+            if sensId is not None:
+                if sensId >= 1:
+                    return sensId
+        return None
 
     # -- configure the panel and strip
     def configurePanel(self):
@@ -139,10 +146,7 @@ class LedFunctions:
         milli_sec = time.time()
         coordinate = None
 
-        for i in range(len(self.arduinoAdresses)):
-            sensId = self.readInput(self.arduinoAdresses[i])
-            if sensId is not None:
-                break
+        sensId = self.readInput()
 
         if sensId is not None:
             if sensId >= 1:
@@ -175,15 +179,12 @@ class LedFunctions:
 
 
     def draw(self):
+        """ drawing mode """
         coordinate = None
 
         time.sleep(0.1)
 
-        for i in range(len(self.arduinoAdresses)):
-            sensId = self.readInput(self.arduinoAdresses[i])
-            if sensId is not None:
-                if sensId >= 1:
-                    break
+        sensId = self.readInput()
         
         if sensId is not None:
             if sensId >= 1:
@@ -226,7 +227,11 @@ class LedFunctions:
         Red = 0
         Green = 0
         Blue = 0
-        
+        if self.score >= 1:
+            self.speed *= 0.965
+            if float(self.speed) < 0.75:
+                self.speed = 0.75
+
         x = self.score / 5
         if x >= 1 and x < 2:
             Green = 255
@@ -251,66 +256,152 @@ class LedFunctions:
         coordinate = self.calculate.calculateSensorCoord(randomSquare)
         
         self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
+        print(float(self.speed))
 
         current = time.time()
         while True:
             if returnFunc() != "WhacMole":
                 return
-            for i in range(len(self.arduinoAdresses)):
-                sensId = self.readInput(self.arduinoAdresses[i])
-                if sensId is not None:
-                    if sensId >= 1:
-                        break
+            sensId = self.readInput()
 
             elapsed = time.time() - current
-            if elapsed < 5:
+            if elapsed < float(self.speed):
                 if sensId is not None: 
                     if sensId >= 1:
                         if sensId == randomSquare:
                             self.score += 1 
                             coordinate = self.calculate.calculateSensorCoord(randomSquare)
                             self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), [0, 0, 0])
+                            if self.score >= 99:
+                                self.endGame(Color(255, 0, 0))
                             break
-            elif elapsed > 5:
-                self.score = 0
-                for i in range(5):  
-                    color = Color(0,255,0) 
-                    for i in range(self.strip.numPixels()):
-                        self.strip.setPixelColor(i, color)
-                    self.strip.show()
-                    time.sleep(1)
-                    color = Color(0, 0, 0)
-                    for i in range(self.strip.numPixels()):
-                        self.strip.setPixelColor(i, color)
-                    self.strip.show()
-                    time.sleep(1)
-                break
+            elif elapsed > float(self.speed):
+                self.endGame(Color(0, 255, 0))
 
+    def endGame(self, c):
+        """         for x in range(3):  
+        color = c
+        for i in range(self.strip.numPixels()):
+            self.strip.setPixelColor(i, color)
+        self.strip.show()
+        time.sleep(1)
+        color = Color(0, 0, 0)
+        for i in range(self.strip.numPixels()):
+            self.strip.setPixelColor(i, color)
+        self.strip.show()
+        time.sleep(1)  """
+        self.clearPanel()
+        self.showScore(self.score, 2, 0, 5)
+        self.showHighscore(self.score)
+        self.clearPanel()
+        self.score = 0
+        self.time = 5.0
+        setFunction("draw")
 
-"""     def showScore(self):
-        x = map(int, str(self.score))
-            
-        l = x[0]
-        r = x[1]
-        color = Color(255,0,0)
+    # show the score
+    def showScore(self, score, offsetX, offsetY, d):
+        # left and right number
+        l = 0
+        r = 0
+        x = list(str(score))
+        if score > 9:
+            l = x[0]
+            r = x[1]
+        else:
+            r = x[0]
 
-        numL = Image.open('numbers\L' + str(l) + '.png')
-        numR = Image.open('numbers\R' + str(r) + '.png')
+        # default color
+        color = [0, 0, 255]
+
+        """self.showImage(0, 'numbers/L' + str(l) + '.png', False)
+        self.showImage(0, 'numbers/R' + str(r) + '.png', False)
+        time.sleep(5) """
+
+        numL = Image.open(r'numbers/L' + str(l) + '.png')
+        numR = Image.open(r'numbers/R' + str(r) + '.png')
 
         pixelsL = list(numL.getdata())
         pixelsR = list(numR.getdata())
 
         width, height = numL.size
-
-        pixelsL = [pixelsL[i * width:(i + 1) * width] for i in xrange(height)]
-        pixelsR = [pixelsR[i * width:(i + 1) * width] for i in xrange(height)]
+        pixelsL = [pixelsL[i * width:(i + 1) * width] for i in range(height)]
+        pixelsR = [pixelsR[i * width:(i + 1) * width] for i in range(height)]
 
         for y in range(12):
             for x in range(12):
                 if pixelsL[y][x][0] == 255:
-                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x, y), x), color)
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x, y + offsetY), x), color)
 
         for y in range(12):
             for x in range(12):
                 if pixelsR[y][x][0] == 255:
-                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x, y), x), color) """
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x + offsetX, y + offsetY), x + offsetX), color)
+       
+        time.sleep(5)
+    
+    # shows the highscore
+    def showHighscore(self, score):
+        self.clearPanel()
+        print("showing highscore")
+        with open('highscore.json') as json_file:
+            data = json.load(json_file)
+
+        highscore = int(data["highscore"])
+        print(highscore)
+        print(score)
+
+        if score > highscore:
+            highscore = score
+            newHighscore =  {
+                "highscore": score
+            }
+            with open('highscore.json', 'w', encoding='utf-8') as f:
+                json.dump(newHighscore, f, ensure_ascii=False, indent=4)
+
+        self.showNumber('numbers/HS.png')
+
+
+        self.showScore(highscore, 2, 3, 4)
+        print("done highscore")
+    
+    def showNumber(self, path):
+        nm = Image.open(path, 'r')
+        pixels = list(nm.getdata())
+        width, height = nm.size
+        pixels = [pixels[i * width:(i + 1) * width] for i in range(height)]
+        for y in range(12):
+            for x in range(12):
+                if pixels[y][x][0] == 255:
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x + 1, y + 1), x + 1), [0, 0, 255])
+    
+    #shows images
+    def showImage(self, d, frame, resize):
+        print(frame)
+        pixels = self.getImagePixels(frame, resize)
+        for i in range(24):
+            for j in range(24):
+                self.strip.setPixelColor(self.calculate.calculateLeds(j, i), Color(int(float(pixels[i][j][1]) * 0.3), int(float(pixels[i][j][0]) * 0.3), int(float(pixels[i][j][2]) * 0.3)))
+        self.strip.show()
+        time.sleep(d)
+    
+    # gets all the pixel values from the given image
+    def getImagePixels(self, path, resize):
+        imageRatio = 24
+        im = Image.open(path, 'r')
+        if resize:
+            im = im.resize((int(imageRatio), int(imageRatio)), resample=Image.BILINEAR)
+
+        pixels = list(im.getdata())
+        width, height = im.size
+        pixels = [pixels[i * width:(i + 1) * width] for i in range(height)]
+        return pixels
+
+    # shows all the images in a 
+    def showGif(self):
+        gif = "pacman"
+        path =  'images/gifs/'
+        finalPath = path + gif 
+        frames =  [f for f in listdir(finalPath) if isfile(join(finalPath, f))]
+        size = len(frames)
+        for i in range(int(size)):
+            self.showImage(1, finalPath + "/" + gif + str(i) + ".jpg", True)

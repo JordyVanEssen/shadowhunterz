@@ -1,10 +1,10 @@
 {
     "panels": "1",
-    "ledX": "8",
-    "ledY": "8",
+    "ledX": "24",
+    "ledY": "24",
     "mode": "Config",
-    "squareX": "1",
-    "squareY": "1",
-    "brightness": "255",
-    "ledCount": "64"
+    "squareX": "12",
+    "squareY": "12",
+    "brightness": "150",
+    "ledCount": "576"
 }

@@ -20,6 +20,7 @@ class I2Csetup():
             print("Error occured in the sending")
 
 
+    # gets the input of the arduinos
     def readInput(self, address):
         data = self.bus.read_byte(int(address))
         if data > 0:

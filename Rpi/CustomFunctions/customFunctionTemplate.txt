@@ -5,4 +5,7 @@ sys.path.insert(0, "")
 from cCalculations import Calculations
 from cLedFunctions import getStrip
 from cCoordinate import Coordinate
+from cWebsocket import getColor
+from neopixel import *
 
+strip = getStrip()

@@ -6,6 +6,7 @@ class FileWriter():
     def __init__(self):
         pass
 
+    # overwrites a given file
     def writeToFile(self, path, data):
         global busy
         busy = True
@@ -14,6 +15,7 @@ class FileWriter():
         f.close()
         busy = False
 
+    # reads a given file
     def readFile(self, path):
         global busy
         if not busy:
@@ -25,6 +27,7 @@ class FileWriter():
 
                 return data
 
+    # adds to a given file
     def addToFile(self, path, data):
         global busy
         if not busy:
