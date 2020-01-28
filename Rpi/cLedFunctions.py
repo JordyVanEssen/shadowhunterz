@@ -50,8 +50,8 @@ class LedFunctions:
         self.setupStrip()
         i = 0
         for i in range(self.config.panels * 3):
-            print(i + 4)
             self.arduinoAdresses.append(i + 4)
+            print(self.arduinoAdresses[i])
 
     # -- asks every arduino if an IR-sensor was activated
     # -- probably need to put every panel in a thread...
@@ -124,6 +124,8 @@ class LedFunctions:
         """Draw rainbow that uniformly distributes itself across all pixels."""
         for j in range(256*iterations):
             for i in range(self.strip.numPixels()):
+                if returnFunc() != "rainbowCycle":
+                    return
                 self.strip.setPixelColor(i, self.wheel((int(i * 256 / self.strip.numPixels()) + j) & 255))
             self.strip.show()
             time.sleep(wait_ms/1000.0)
@@ -256,7 +258,6 @@ class LedFunctions:
         coordinate = self.calculate.calculateSensorCoord(randomSquare)
         
         self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
-        print(float(self.speed))
 
         current = time.time()
         while True:
@@ -279,17 +280,17 @@ class LedFunctions:
                 self.endGame(Color(0, 255, 0))
 
     def endGame(self, c):
-        """         for x in range(3):  
-        color = c
-        for i in range(self.strip.numPixels()):
-            self.strip.setPixelColor(i, color)
+        for x in range(3):  
+            color = c
+            for i in range(self.strip.numPixels()):
+                self.strip.setPixelColor(i, color)
+            self.strip.show()
+            time.sleep(1)
+            color = Color(0, 0, 0)
+            for i in range(self.strip.numPixels()):
+                self.strip.setPixelColor(i, color)
         self.strip.show()
-        time.sleep(1)
-        color = Color(0, 0, 0)
-        for i in range(self.strip.numPixels()):
-            self.strip.setPixelColor(i, color)
-        self.strip.show()
-        time.sleep(1)  """
+        time.sleep(1) 
         self.clearPanel()
         self.showScore(self.score, 2, 0, 5)
         self.showHighscore(self.score)
@@ -347,8 +348,6 @@ class LedFunctions:
             data = json.load(json_file)
 
         highscore = int(data["highscore"])
-        print(highscore)
-        print(score)
 
         if score > highscore:
             highscore = score
@@ -376,7 +375,6 @@ class LedFunctions:
     
     #shows images
     def showImage(self, d, frame, resize):
-        print(frame)
         pixels = self.getImagePixels(frame, resize)
         for i in range(24):
             for j in range(24):
@@ -387,7 +385,7 @@ class LedFunctions:
     # gets all the pixel values from the given image
     def getImagePixels(self, path, resize):
         imageRatio = 24
-        im = Image.open(path, 'r')
+        im = Image.open(path, 'r').convert('RGB')
         if resize:
             im = im.resize((int(imageRatio), int(imageRatio)), resample=Image.BILINEAR)
 

@@ -28,7 +28,6 @@ class Calculations:
             y += 1
             temp -= self.SQUARE_X
         
-        print(temp, " ", y)
         return Coordinate(temp, y)
 
         """ sensorId -= 1
@@ -49,9 +48,10 @@ class Calculations:
         x3 = num + (((2 * self.X_MAX)-1) - ((x-1) * 4))-1
         x4 = x3 + 1
         arr = {x1, x2, x3, x4}
-        print(arr)
         return arr
 
     # -- Returns the number of the LED in the top-left corner of the square
     def calcTopLeftSquare(self, x, y):
-        return x * 2 - 1 + (((y*2-1)-1) * self.Y_MAX)
+        tl = x * 2 - 1 + (((y*2-1)-1) * self.X_MAX)
+        print(tl)
+        return tl

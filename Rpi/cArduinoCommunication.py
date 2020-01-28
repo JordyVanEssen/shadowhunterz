@@ -22,8 +22,11 @@ class I2Csetup():
 
     # gets the input of the arduinos
     def readInput(self, address):
+        # data = data + ((adres - 4) * 48)
         data = self.bus.read_byte(int(address))
         if data > 0:
+            if address >= 9:
+                data += 256
             print("received: %d" %data)
         
         if not (data is None):

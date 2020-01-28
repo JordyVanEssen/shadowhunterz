@@ -39,7 +39,7 @@ class IOcontroller:
                 if digit is 1:
                     setFunction("clearPanel")
                 elif digit is 2:
-                    setFunction("rainbow")
+                    setFunction("rainbowCycle")
                 elif digit is 3:
                     setFunction("WhacMole")
                 elif digit is 4:
