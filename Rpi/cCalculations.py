@@ -53,5 +53,4 @@ class Calculations:
     # -- Returns the number of the LED in the top-left corner of the square
     def calcTopLeftSquare(self, x, y):
         tl = x * 2 - 1 + (((y*2-1)-1) * self.X_MAX)
-        print(tl)
         return tl

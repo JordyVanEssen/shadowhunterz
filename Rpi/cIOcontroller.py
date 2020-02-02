@@ -52,6 +52,7 @@ class IOcontroller:
         for i in range(3):
             colorInput = bus.readInput(0x03)
             color[i] = colorInput
+        print(color)
         setColor(color)
 
     # get the mode, draw of delete

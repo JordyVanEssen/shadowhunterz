@@ -6,6 +6,8 @@ from cWebsocket import getColor, run, returnFunc, setColor
 from cIOcontroller import IOcontroller
 from neopixel import *
 from PIL import Image 
+from PIL import GifImagePlugin
+import os
 from os import listdir
 from os.path import isfile, join
 import random
@@ -125,6 +127,7 @@ class LedFunctions:
         for j in range(256*iterations):
             for i in range(self.strip.numPixels()):
                 if returnFunc() != "rainbowCycle":
+                    self.clearPanel()
                     return
                 self.strip.setPixelColor(i, self.wheel((int(i * 256 / self.strip.numPixels()) + j) & 255))
             self.strip.show()
@@ -190,6 +193,7 @@ class LedFunctions:
         
         if sensId is not None:
             if sensId >= 1:
+                print (sensId)
                 if sensId not in self.litUpSquare:
                     self.litUpSquare.append(sensId)
 
@@ -204,6 +208,7 @@ class LedFunctions:
 
                     # it uses GRB instead of RGB
                     color = customColor
+                    print (color)
                     #color = Color(int(customColor[1]), int(customColor[0]), int(customColor[2]))
             elif self.controller.getMode() is 0:
                 self.litUpSquare.remove(sensId)
@@ -226,58 +231,67 @@ class LedFunctions:
 
     def WhacMole(self):
         """ Whaca-A-Mole Game."""
-        Red = 0
-        Green = 0
-        Blue = 0
-        if self.score >= 1:
-            self.speed *= 0.965
-            if float(self.speed) < 0.75:
-                self.speed = 0.75
-
-        x = self.score / 5
-        if x >= 1 and x < 2:
-            Green = 255
-        elif x >= 2 and x < 3:
-            Green = 255
-            Red = 255
-        elif x >= 3 and x < 4:
-            Green = 200 
-            Red = 255
-        elif x >= 4 and x < 5:
-            Green = 120
-            Red = 255
-        elif x >= 5:
-            Green = 20
-            Red = 255
-        else:
-            Green = 160
-
-        color = [Red, Green, Blue]
-
-        randomSquare = random.randrange(1, self.config.squareX * self.config.squareY + 1)
-        coordinate = self.calculate.calculateSensorCoord(randomSquare)
-        
-        self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
-
-        current = time.time()
+        self.countDown()
         while True:
-            if returnFunc() != "WhacMole":
-                return
-            sensId = self.readInput()
+            Red = 0
+            Green = 0
+            Blue = 0
+            if self.score >= 1:
+                self.speed *= 0.965
+                if float(self.speed) < 0.75:
+                    self.speed = 0.75
 
-            elapsed = time.time() - current
-            if elapsed < float(self.speed):
-                if sensId is not None: 
-                    if sensId >= 1:
-                        if sensId == randomSquare:
-                            self.score += 1 
-                            coordinate = self.calculate.calculateSensorCoord(randomSquare)
-                            self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), [0, 0, 0])
-                            if self.score >= 99:
-                                self.endGame(Color(255, 0, 0))
-                            break
-            elif elapsed > float(self.speed):
-                self.endGame(Color(0, 255, 0))
+            x = self.score / 5
+            if x >= 1 and x < 2:
+                Green = 255
+            elif x >= 2 and x < 3:
+                Green = 255
+                Red = 255
+            elif x >= 3 and x < 4:
+                Green = 200 
+                Red = 255
+            elif x >= 4 and x < 5:
+                Green = 120
+                Red = 255
+            elif x >= 5:
+                Green = 20
+                Red = 255
+            else:
+                Green = 160
+
+            color = [Red, Green, Blue]
+
+            randomSquare = random.randrange(1, self.config.squareX * self.config.squareY + 1)
+            coordinate = self.calculate.calculateSensorCoord(randomSquare)
+            
+            self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), color)
+
+            current = time.time()
+            while True:
+                if returnFunc() != "WhacMole":
+                    self.clearPanel()
+                    return
+                sensId = self.readInput()
+
+                elapsed = time.time() - current
+                if elapsed < float(self.speed):
+                    if sensId is not None: 
+                        if sensId >= 1:
+                            if sensId == randomSquare:
+                                self.score += 1 
+                                coordinate = self.calculate.calculateSensorCoord(randomSquare)
+                                self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(coordinate.x, coordinate.y), coordinate.x), [0, 0, 0])
+                                if self.score >= 99:
+                                    self.endGame(Color(255, 0, 0))
+                                break
+                elif elapsed > float(self.speed):
+                    self.endGame(Color(0, 255, 0))
+    
+    def countDown(self):
+        for x in range(2, -1, -1):
+            self.showNumber('numbers/B' + str(x) + '.png', 0, 0)
+            self.clearPanel()
+
 
     def endGame(self, c):
         for x in range(3):  
@@ -357,13 +371,13 @@ class LedFunctions:
             with open('highscore.json', 'w', encoding='utf-8') as f:
                 json.dump(newHighscore, f, ensure_ascii=False, indent=4)
 
-        self.showNumber('numbers/HS.png')
+        self.showNumber('numbers/HS.png', 1, 1)
 
 
         self.showScore(highscore, 2, 3, 4)
         print("done highscore")
     
-    def showNumber(self, path):
+    def showNumber(self, path, offsetX, offsetY):
         nm = Image.open(path, 'r')
         pixels = list(nm.getdata())
         width, height = nm.size
@@ -371,14 +385,14 @@ class LedFunctions:
         for y in range(12):
             for x in range(12):
                 if pixels[y][x][0] == 255:
-                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x + 1, y + 1), x + 1), [0, 0, 255])
+                    self.drawSquare(self.calculate.calcLEDS(self.calculate.calcTopLeftSquare(x + offsetX, y + offsetY), x + offsetX), [0, 0, 255])
     
     #shows images
     def showImage(self, d, frame, resize):
         pixels = self.getImagePixels(frame, resize)
-        for i in range(24):
-            for j in range(24):
-                self.strip.setPixelColor(self.calculate.calculateLeds(j, i), Color(int(float(pixels[i][j][1]) * 0.3), int(float(pixels[i][j][0]) * 0.3), int(float(pixels[i][j][2]) * 0.3)))
+        for i in range(self.config.ledY):
+            for j in range(self.config.ledX):
+                self.strip.setPixelColor(self.calculate.calculateLeds(j, i), Color(int(pixels[i][j][1]), int(pixels[i][j][0]), int(pixels[i][j][2])))
         self.strip.show()
         time.sleep(d)
     
@@ -386,20 +400,50 @@ class LedFunctions:
     def getImagePixels(self, path, resize):
         imageRatio = 24
         im = Image.open(path, 'r').convert('RGB')
+
         if resize:
-            im = im.resize((int(imageRatio), int(imageRatio)), resample=Image.BILINEAR)
+            im = im.resize((self.config.ledX, self.config.ledY), resample=Image.BILINEAR)
 
         pixels = list(im.getdata())
         width, height = im.size
         pixels = [pixels[i * width:(i + 1) * width] for i in range(height)]
         return pixels
 
+
+    def convertGifToFrames(self, path, gif, frames):
+        finalPath = path + gif + "/" + gif + ".gif" 
+        print(finalPath)
+        im = Image.open(finalPath)
+
+        index = 0
+        while index < frames:
+            try:
+                im.seek(index)
+                resizedImage = im.resize((self.config.ledX, self.config.ledY), resample=Image.BILINEAR)
+                resizedImage.save(path + gif +  "/" + gif + str(index) + ".png")
+                frame = Image.open(path + gif + "/" + gif + str(index) + ".png").convert('RGB')
+                frame.save(path + gif + "/" + gif + str(index) + ".jpg")
+                os.remove(path + gif +  "/" + gif + str(index) + ".png")
+                index += 1
+            except EOFError as e:
+                return
+
+
     # shows all the images in a 
     def showGif(self):
-        gif = "pacman"
+        gif = "croc"
         path =  'images/gifs/'
         finalPath = path + gif 
-        frames =  [f for f in listdir(finalPath) if isfile(join(finalPath, f))]
-        size = len(frames)
-        for i in range(int(size)):
-            self.showImage(1, finalPath + "/" + gif + str(i) + ".jpg", True)
+        frames = 14
+
+        files = [f for f in listdir(finalPath) if isfile(join(finalPath, f))]
+        if len(files) == 1:
+            self.convertGifToFrames(path, gif, frames)
+        while True:
+            for i in range(frames):
+                if returnFunc() != "showGif":
+                    return
+                self.showImage(0.05, finalPath + "/" + gif + str(i) + ".jpg", False)
+    
+
+    
