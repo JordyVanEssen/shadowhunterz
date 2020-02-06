@@ -2,7 +2,7 @@ from cCalculations import Calculations
 from cArduinoCommunication import I2Csetup
 from cFileWriter import FileWriter
 from cConfig import LedstripConfig
-from cWebsocket import getColor, run, returnFunc, setColor
+from cWebsocket import getColor, run, returnFunc, setColor, setFunction
 from cIOcontroller import IOcontroller
 from neopixel import *
 from PIL import Image 
@@ -310,7 +310,7 @@ class LedFunctions:
         self.showHighscore(self.score)
         self.clearPanel()
         self.score = 0
-        self.time = 5.0
+        self.speed = 5.0
         setFunction("draw")
 
     # show the score

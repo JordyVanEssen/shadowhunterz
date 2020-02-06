@@ -19,7 +19,7 @@ const int connectedSensors = 48;
 // The adresses start from 0x04
 // When defining the address,
 // there cant be any duplicates of addresses so keep counting when you give the slaves of the next panel their address.
-#define SLAVE_ADDRESS 0x08
+#define SLAVE_ADDRESS 0x07
 
 // ===========================================================================================================================
 
@@ -30,7 +30,7 @@ int squares[connectedSensors];
 
 void setup() {
   // begin running as an I2C slave on the specified address
- // Serial.begin(9600);
+ Serial.begin(9600);
   Wire.begin(SLAVE_ADDRESS);
 
   int pin = 2;
@@ -76,16 +76,16 @@ int readSensor() {
 
     // loop over all the pins
     int state = digitalRead(squares[i]);
-//    Serial.print(i);
-//    Serial.print(" ");
-//    Serial.println(state);
+    Serial.print(i);
+    Serial.print(" ");
+    Serial.println(state);
 
     // if activated, send the index of the array + the id * connectedSensors
     // keep in mind for the last slave this wont work, because it does not have as many sensors connected to it.
     // so you need to change connectedSensors to the amount of sensors connected to both of the other slaves + all the senors on previous panels.
 
     if (state == 0) {
-      //Serial.println(i);
+      Serial.println(i);
       return (i);
     }
   }
